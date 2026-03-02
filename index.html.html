@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trader Weapon Price Calculator</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; padding: 24px; background: #0b0f14; color: #e8eef6; }
+    .card { max-width: 980px; margin: 0 auto; padding: 18px; border: 1px solid #223042; border-radius: 14px; background: #101824; }
+    h1 { margin: 0 0 10px; font-size: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { font-size: 12px; opacity: 0.9; display: block; margin-bottom: 6px; }
+    input, select {
+      width: 100%; box-sizing: border-box;
+      padding: 10px 12px; border-radius: 10px;
+      border: 1px solid #223042; background: #0b0f14; color: #e8eef6;
+      font-size: 14px;
+    }
+    .row { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    button {
+      padding: 8px 10px; border-radius: 999px;
+      border: 1px solid #223042; background: #152235; color: #e8eef6;
+      cursor: pointer; font-size: 13px;
+    }
+    button:hover { filter: brightness(1.08); }
+    .results { margin-top: 14px; padding: 14px; border-radius: 12px; background: #0b0f14; border: 1px solid #223042; }
+    .results .big { font-size: 22px; font-weight: 700; margin: 6px 0; }
+    .muted { opacity: 0.85; font-size: 13px; }
+    .footer { margin-top: 10px; opacity: 0.75; font-size: 12px; line-height: 1.4; }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px;
+      border:1px solid #223042; background:#0b0f14;
+      font-size: 12px; opacity: .95; width: fit-content;
+    }
+    .hint { font-size: 12px; opacity: .75; margin-top: 6px; }
+    @media (max-width: 780px){ .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Trader Weapon Price Calculator</h1>
+
+    <div class="grid">
+      <div>
+        <label for="tier">Weapon Tier</label>
+        <select id="tier">
+          <option value="all">All tiers</option>
+          <option value="1">Tier 1</option>
+          <option value="2">Tier 2</option>
+          <option value="3">Tier 3</option>
+        </select>
+        <div class="hint">Tier 4 weapons still show under “All tiers”.</div>
+
+        <div style="margin-top:12px;">
+          <label for="category">Weapon Type</label>
+          <select id="category">
+            <option value="all">All types</option>
+            <option value="pistol">Pistols / Revolvers</option>
+            <option value="shotgun">Shotguns</option>
+            <option value="smg">SMGs</option>
+            <option value="ar">ARs / Carbines</option>
+            <option value="dmr">DMRs</option>
+            <option value="sniper">Snipers</option>
+            <option value="lmg">LMGs</option>
+            <option value="launcher">Launchers</option>
+            <option value="special">Special</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="weaponSearch">Search weapon</label>
+        <input id="weaponSearch" placeholder="Type to filter… (e.g., sr, 1911, ak)" />
+        <div class="hint">Tier → Type → Search.</div>
+
+        <div style="margin-top:10px;">
+          <label>Selected</label>
+          <div class="pill" id="selectedInfo">None</div>
+        </div>
+      </div>
+
+      <div>
+        <label for="weaponSelect">Weapon</label>
+        <select id="weaponSelect">
+          <option value="">Select a weapon…</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="market">Market price (what you pay)</label>
+        <input id="market" inputmode="numeric" placeholder="e.g., 10000" />
+      </div>
+
+      <div>
+        <label for="profit">Profit %</label>
+        <input id="profit" inputmode="decimal" placeholder="e.g., 45" />
+      </div>
+
+      <div>
+        <label for="roundTo">Round to</label>
+        <input id="roundTo" inputmode="numeric" value="1" />
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="muted">Quick %:</span>
+      <button data-p="20">20%</button>
+      <button data-p="30">30%</button>
+      <button data-p="45">45%</button>
+      <button data-p="50">50%</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="results">
+      <div class="muted" id="summary">Choose a weapon or enter values to calculate.</div>
+      <div class="big" id="sellPrice">—</div>
+      <div class="muted" id="profitAmt">—</div>
+    </div>
+
+    <div class="footer">
+      Formula: <b>Sell Price = Market Price × (1 + Profit%/100)</b><br/>
+      Rounding: set “Round to” to 1 (no rounding), 10, 50, 100, etc.
+    </div>
+  </div>
+
+  <script>
+    // cat: pistol, shotgun, smg, ar, dmr, sniper, lmg, launcher, special
+    // DMR vs Sniper rule (your preference):
+    // - DMRs: semi-auto / marksman (SVD, SVU, SR-25, M14 EBR, VSS)
+    // - Snipers: bolt/precision/anti-material (SV-98, L115, TRG, Barrett, Accurate Rifle, VSSK, PTRS)
+    const WEAPONS = [
+      // Tier 1 — Pistols
+      { name: "Beretta 92", tier: 1, cat: "pistol", market: 6000 },
+      { name: "Browning Hi-Power", tier: 1, cat: "pistol", market: 2400 },
+      { name: "CZ-52", tier: 1, cat: "pistol", market: 3000 },
+      { name: "Fort-12", tier: 1, cat: "pistol", market: 3000 },
+      { name: "Iver Johnson Champion", tier: 1, cat: "pistol", market: 11600 },
+      { name: "Luger P08", tier: 1, cat: "pistol", market: 8500 },
+      { name: "Makarov", tier: 1, cat: "pistol", market: 1800 },
+      { name: "Nagant Revolver", tier: 1, cat: "pistol", market: 600 },
+      { name: "P99", tier: 1, cat: "pistol", market: 8500 },
+      { name: "Ruger MKIII", tier: 1, cat: "pistol", market: 6000 },
+      { name: "Tokarev TT-33", tier: 1, cat: "pistol", market: 1600 },
+
+      // Tier 1 — SMGs
+      { name: "Skorpion", tier: 1, cat: "smg", market: 12400 },
+      { name: "Sten Gun Mk II", tier: 1, cat: "smg", market: 7000 },
+      { name: "Sterling", tier: 1, cat: "smg", market: 19200 },
+      { name: "MP34", tier: 1, cat: "smg", market: 13000 },
+      { name: "MP40", tier: 1, cat: "smg", market: 14400 },
+
+      // Tier 1 — Shotguns
+      { name: "TOZ BM-16", tier: 1, cat: "shotgun", market: 8800 },
+      { name: "TOZ-106", tier: 1, cat: "shotgun", market: 8000 },
+      { name: "TOZ-34 Hunting", tier: 1, cat: "shotgun", market: 15000 },
+      { name: "TOZ-34 Sawed-off", tier: 1, cat: "shotgun", market: 8000 },
+      { name: "TOZ-34 Sport", tier: 1, cat: "shotgun", market: 55000 },
+      { name: "TOZ-66", tier: 1, cat: "shotgun", market: 15800 },
+      { name: "MP-18", tier: 1, cat: "shotgun", market: 18000 },
+      { name: "MP-27", tier: 1, cat: "shotgun", market: 11600 },
+
+      // Tier 1 — AR/Carbines (cheap rifles live here)
+      { name: "Ruger 10/22", tier: 1, cat: "ar", market: 13200 },
+      { name: "Winchester Model 1894", tier: 1, cat: "ar", market: 35000 },
+
+      // Tier 1 — Sniper (sawed rifle)
+      { name: "Obrez", tier: 1, cat: "sniper", market: 14700 },
+
+      // Tier 2 — Pistols
+      { name: "Glock 17", tier: 2, cat: "pistol", market: 9600 },
+      { name: "Glock 18", tier: 2, cat: "pistol", market: 13400 },
+      { name: "M1911", tier: 2, cat: "pistol", market: 13200 },
+      { name: "M1917 Revolver", tier: 2, cat: "pistol", market: 1700 },
+      { name: "Mauser C96", tier: 2, cat: "pistol", market: 6900 },
+      { name: "Mateba Autorevolver", tier: 2, cat: "pistol", market: 28000 },
+      { name: "Smith & Wesson", tier: 2, cat: "pistol", market: 38000 },
+
+      // Tier 2 — SMGs
+      { name: "9A-91", tier: 2, cat: "smg", market: 70000 },
+      { name: "AKS-74U", tier: 2, cat: "smg", market: 25500 },
+      { name: "H&K UMP", tier: 2, cat: "smg", market: 29400 },
+      { name: "HK MP5", tier: 2, cat: "smg", market: 25500 },
+      { name: "MP5K", tier: 2, cat: "smg", market: 19000 },
+      { name: "MP9A1", tier: 2, cat: "smg", market: 22200 },
+      { name: "IMI Uzi", tier: 2, cat: "smg", market: 15000 },
+      { name: "IMI Uzi Custom", tier: 2, cat: "smg", market: 19000 },
+      { name: "KP-31", tier: 2, cat: "smg", market: 19200 },
+      { name: "OTs-02 Kiparis", tier: 2, cat: "smg", market: 12600 },
+      { name: "PP-19 “Bizon”", tier: 2, cat: "smg", market: 32000 },
+      { name: "PP-2000", tier: 2, cat: "smg", market: 28000 },
+      { name: "PPSh-41", tier: 2, cat: "smg", market: 8400 },
+      { name: "SR-2 Veresk", tier: 2, cat: "smg", market: 36000 },
+      { name: "MAC-11", tier: 2, cat: "smg", market: 12000 },
+      { name: "M1928A1 Thompson", tier: 2, cat: "smg", market: 36000 },
+
+      // Tier 2 — Shotguns
+      { name: "Baikal MP-153", tier: 2, cat: "shotgun", market: 22000 },
+      { name: "Ithaca 37", tier: 2, cat: "shotgun", market: 27000 },
+      { name: "M1887", tier: 2, cat: "shotgun", market: 19000 },
+      { name: "M3 Super 90", tier: 2, cat: "shotgun", market: 23000 },
+      { name: "Mossberg 500", tier: 2, cat: "shotgun", market: 20400 },
+      { name: "Remington 870", tier: 2, cat: "shotgun", market: 28000 },
+      { name: "Saiga Semi-auto", tier: 2, cat: "shotgun", market: 32800 },
+
+      // Tier 2 — ARs/Carbines
+      { name: "AK-74", tier: 2, cat: "ar", market: 30000 },
+      { name: "AKM", tier: 2, cat: "ar", market: 38500 },
+      { name: "AR-15 9mm", tier: 2, cat: "ar", market: 36000 },
+      { name: "LR-300", tier: 2, cat: "ar", market: 46200 },
+      { name: "M16A4", tier: 2, cat: "ar", market: 45000 },
+      { name: "Marlin 1894", tier: 2, cat: "ar", market: 42000 },
+      { name: "Ruger Mini-14", tier: 2, cat: "ar", market: 25800 },
+      { name: "Sako 85", tier: 2, cat: "ar", market: 53400 },
+      { name: "SKS", tier: 2, cat: "ar", market: 27000 },
+      { name: "SIG SG 552", tier: 2, cat: "ar", market: 48000 },
+
+      // Tier 2 — DMR / Sniper
+      { name: "SVT-40", tier: 2, cat: "dmr", market: 66000 },
+      { name: "Mosin Nagant", tier: 2, cat: "sniper", market: 52000 },
+
+      // Tier 2 — LMG
+      { name: "DP-28", tier: 2, cat: "lmg", market: 71200 },
+
+      // Tier 2 — “Other” (kept as pistol, since it’s a single-shot handgun)
+      { name: "G2 Contender", tier: 2, cat: "pistol", market: 1200 },
+
+      // Tier 3 — Pistols
+      { name: "Five-seveN", tier: 3, cat: "pistol", market: 35000 },
+      { name: "Stechkin APS", tier: 3, cat: "pistol", market: 15000 },
+      { name: "Taurus Judge", tier: 3, cat: "pistol", market: 13600 },
+      { name: "Taurus Raging Bull", tier: 3, cat: "pistol", market: 27000 },
+
+      // Tier 3 — Snipers (bolt/precision/anti-material)
+      { name: "Accurate Rifle", tier: 3, cat: "sniper", market: 1600000 },
+      { name: "Barrett M98B", tier: 3, cat: "sniper", market: 196000 },
+      { name: "Sako TRG-42", tier: 3, cat: "sniper", market: 64000 },
+      { name: "L115", tier: 3, cat: "sniper", market: 130000 },
+      { name: "SV-98", tier: 3, cat: "sniper", market: 77000 },
+      { name: "VSSK “Vykhlop”", tier: 3, cat: "sniper", market: 190000 },
+      { name: "PTRS-41", tier: 3, cat: "sniper", market: 300000 },
+
+      // Tier 3 — DMRs
+      { name: "Dragunov SVD", tier: 3, cat: "dmr", market: 88000 },
+      { name: "SVU-A", tier: 3, cat: "dmr", market: 152000 },
+      { name: "M14 EBR", tier: 3, cat: "dmr", market: 75000 },
+      { name: "SR-25", tier: 3, cat: "dmr", market: 133500 },
+      { name: "VSS Vintorez", tier: 3, cat: "dmr", market: 90000 },
+
+      // Tier 3 — ARs/Carbines
+      { name: "AEK-971", tier: 3, cat: "ar", market: 48400 },
+      { name: "AK-12", tier: 3, cat: "ar", market: 59200 },
+      { name: "AN-94", tier: 3, cat: "ar", market: 57200 },
+      { name: "FAMAS", tier: 3, cat: "ar", market: 47400 },
+      { name: "FN F2000", tier: 3, cat: "ar", market: 57000 },
+      { name: "FN FAL", tier: 3, cat: "ar", market: 72000 },
+      { name: "HK G36C", tier: 3, cat: "ar", market: 49800 },
+      { name: "HK416", tier: 3, cat: "ar", market: 58000 },
+      { name: "L85", tier: 3, cat: "ar", market: 49200 },
+      { name: "SAKO RK 95", tier: 3, cat: "ar", market: 50300 },
+      { name: "AS Val", tier: 3, cat: "ar", market: 84000 },
+      { name: "SR-3M “Vikhr”", tier: 3, cat: "ar", market: 90000 },
+      { name: "Steyr AUG", tier: 3, cat: "ar", market: 57000 },
+
+      // Tier 3 — SMG
+      { name: "FN P90", tier: 3, cat: "smg", market: 38000 },
+
+      // Tier 3 — Shotguns
+      { name: "Serbu Super-Shorty", tier: 3, cat: "shotgun", market: 14400 },
+      { name: "Stoeger Double Defense", tier: 3, cat: "shotgun", market: 19000 },
+      { name: "Striker", tier: 3, cat: "shotgun", market: 57800 },
+      { name: "Saiga-12", tier: 3, cat: "shotgun", market: 41200 },
+      { name: "Franchi SPAS-12", tier: 3, cat: "shotgun", market: 35000 },
+
+      // Tier 3 — LMGs
+      { name: "RPK", tier: 3, cat: "lmg", market: 70000 },
+      { name: "PKM", tier: 3, cat: "lmg", market: 200000 },
+      { name: "PKP “Pecheneg”", tier: 3, cat: "lmg", market: 350000 },
+      { name: "M240B", tier: 3, cat: "lmg", market: 465000 },
+
+      // Tier 3 — Launcher
+      { name: "RPG-7U", tier: 3, cat: "launcher", market: 4400000 },
+
+      // Tier 4 (still selectable under All tiers)
+      { name: "TKPD", tier: 4, cat: "special", market: 190000 },
+      { name: "Gauss Rifle", tier: 4, cat: "special", market: 8800000 },
+
+      // Special (kept Tier 3 for now; if it’s Tier 4 on your server, we can flip it)
+      { name: "EM1", tier: 3, cat: "special", market: 8800000 }
+    ];
+
+    const tierEl = document.getElementById('tier');
+    const catEl = document.getElementById('category');
+    const weaponSearchEl = document.getElementById('weaponSearch');
+    const weaponSelectEl = document.getElementById('weaponSelect');
+    const marketEl = document.getElementById('market');
+    const profitEl = document.getElementById('profit');
+    const roundToEl = document.getElementById('roundTo');
+
+    const selectedInfoEl = document.getElementById('selectedInfo');
+    const summaryEl = document.getElementById('summary');
+    const sellPriceEl = document.getElementById('sellPrice');
+    const profitAmtEl = document.getElementById('profitAmt');
+
+    function toNumber(val) {
+      const cleaned = String(val).replace(/[, ]+/g, '');
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function formatMoney(n) {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
+    }
+
+    function roundTo(n, step) {
+      if (!Number.isFinite(step) || step <= 0) return n;
+      return Math.round(n / step) * step;
+    }
+
+    function getFilteredWeapons() {
+      const t = tierEl.value;
+      const c = catEl.value;
+      const q = weaponSearchEl.value.trim().toLowerCase();
+
+      let list = WEAPONS;
+      if (t !== 'all') list = list.filter(w => String(w.tier) === t);
+      if (c !== 'all') list = list.filter(w => w.cat === c);
+      if (q) list = list.filter(w => w.name.toLowerCase().includes(q));
+      return list;
+    }
+
+    function rebuildWeaponDropdown(keepSelection = true) {
+      const prior = keepSelection ? weaponSelectEl.value : "";
+      const filtered = getFilteredWeapons();
+
+      weaponSelectEl.innerHTML =
+        `<option value="">Select a weapon…</option>` +
+        filtered
+          .slice()
+          .sort((a,b) => a.name.localeCompare(b.name))
+          .map(w => `<option value="${w.name}">${w.name}</option>`)
+          .join("");
+
+      if (prior) {
+        const stillExists = filtered.some(w => w.name === prior);
+        weaponSelectEl.value = stillExists ? prior : "";
+      }
+      handleWeaponChange(false);
+    }
+
+    function handleWeaponChange(autoCalc = true) {
+      const selectedName = weaponSelectEl.value;
+      if (!selectedName) {
+        selectedInfoEl.textContent = "None";
+        if (autoCalc) calc();
+        return;
+      }
+
+      const w = WEAPONS.find(x => x.name === selectedName);
+      selectedInfoEl.textContent = `Tier ${w.tier} • ${w.cat.toUpperCase()} • Market ${formatMoney(w.market)}`;
+      marketEl.value = w.market;
+
+      if (autoCalc) calc();
+    }
+
+    function calc() {
+      const selectedName = weaponSelectEl.value;
+      const market = toNumber(marketEl.value);
+      const pct = toNumber(profitEl.value);
+      const step = toNumber(roundToEl.value);
+
+      if (!Number.isFinite(market) || !Number.isFinite(pct)) {
+        summaryEl.textContent = "Enter a market price and profit % (or pick a weapon).";
+        sellPriceEl.textContent = "—";
+        profitAmtEl.textContent = "—";
+        return;
+      }
+
+      const sellRaw = market * (1 + (pct / 100));
+      const sell = roundTo(sellRaw, step);
+      const profit = sell - market;
+
+      const name = selectedName ? ` (${selectedName})` : "";
+      summaryEl.textContent = `Market${name}: ${formatMoney(market)} | Profit: ${pct}%`;
+      sellPriceEl.textContent = `Sell for: ${formatMoney(sell)}`;
+      profitAmtEl.textContent = `Profit: ${formatMoney(profit)} (before fees/tax)`;
+    }
+
+    tierEl.addEventListener('change', () => rebuildWeaponDropdown(true));
+    catEl.addEventListener('change', () => rebuildWeaponDropdown(true));
+    weaponSearchEl.addEventListener('input', () => rebuildWeaponDropdown(true));
+    weaponSelectEl.addEventListener('change', () => handleWeaponChange(true));
+    [marketEl, profitEl, roundToEl].forEach(el => el.addEventListener('input', calc));
+
+    document.querySelectorAll('button[data-p]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        profitEl.value = btn.dataset.p;
+        calc();
+      });
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      tierEl.value = "all";
+      catEl.value = "all";
+      weaponSearchEl.value = "";
+      weaponSelectEl.value = "";
+      profitEl.value = "";
+      marketEl.value = "";
+      roundToEl.value = "1";
+      selectedInfoEl.textContent = "None";
+      rebuildWeaponDropdown(false);
+      calc();
+      weaponSelectEl.focus();
+    });
+
+    rebuildWeaponDropdown(false);
+  </script>
+</body>
+</html>
