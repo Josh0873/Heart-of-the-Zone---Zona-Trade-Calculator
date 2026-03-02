@@ -3,135 +3,404 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trader Weapon Price Calculator</title>
+  <title>Zona PDA — Trader Calculator</title>
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; padding: 24px; background: #0b0f14; color: #e8eef6; }
-    .card { max-width: 980px; margin: 0 auto; padding: 18px; border: 1px solid #223042; border-radius: 14px; background: #101824; }
-    h1 { margin: 0 0 10px; font-size: 20px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    label { font-size: 12px; opacity: 0.9; display: block; margin-bottom: 6px; }
-    input, select {
-      width: 100%; box-sizing: border-box;
-      padding: 10px 12px; border-radius: 10px;
-      border: 1px solid #223042; background: #0b0f14; color: #e8eef6;
-      font-size: 14px;
+    :root{
+      --bg0:#050708;
+      --bg1:#070b0c;
+      --txt:#b7ffd7;
+      --txt2:#79f7b6;
+      --dim:#6bcf9e;
+      --bad:#ff6b6b;
+      --glow: 0 0 10px rgba(60,255,170,.25), 0 0 28px rgba(60,255,170,.14);
+      --glowStrong: 0 0 12px rgba(60,255,170,.35), 0 0 38px rgba(60,255,170,.20);
+      --radius: 14px;
+      --font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
-    .row { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    button {
-      padding: 8px 10px; border-radius: 999px;
-      border: 1px solid #223042; background: #152235; color: #e8eef6;
-      cursor: pointer; font-size: 13px;
+    *{ box-sizing:border-box; }
+
+    /* ===== PDA FRAME SHELL (OUTSIDE) ===== */
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(60,255,170,.10), transparent 60%),
+        radial-gradient(900px 600px at 80% 30%, rgba(60,255,170,.06), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      color:var(--txt);
+      font-family:var(--font);
+      padding: 18px;
     }
-    button:hover { filter: brightness(1.08); }
-    .results { margin-top: 14px; padding: 14px; border-radius: 12px; background: #0b0f14; border: 1px solid #223042; }
-    .results .big { font-size: 22px; font-weight: 700; margin: 6px 0; }
-    .muted { opacity: 0.85; font-size: 13px; }
-    .footer { margin-top: 10px; opacity: 0.75; font-size: 12px; line-height: 1.4; }
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding: 6px 10px; border-radius: 999px;
-      border:1px solid #223042; background:#0b0f14;
-      font-size: 12px; opacity: .95; width: fit-content;
+
+    /* Put your PDA frame image in repo root as: pda-frame.png */
+    .frame{
+      width: min(1500px, 96vw);
+      aspect-ratio: 16 / 9; /* adjust if your frame image ratio differs */
+      background: url("./pda-frame.png") center / contain no-repeat;
+      position: relative;
+      filter: drop-shadow(0 24px 60px rgba(0,0,0,.65));
     }
-    .hint { font-size: 12px; opacity: .75; margin-top: 6px; }
-    @media (max-width: 780px){ .grid { grid-template-columns: 1fr; } }
+
+    .screen{
+      position: absolute;
+
+      /* Fit controls for the "glass" area inside the frame image */
+      left: 8.5%;
+      right: 8.5%;
+      top: 13.5%;
+      bottom: 13.5%;
+
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+    }
+
+    /* ===== PDA CALCULATOR (INSIDE) ===== */
+    .pda {
+      width: 100%;
+      height: 100%;
+      margin:0;
+      border-radius: 18px;
+      border: 1px solid rgba(60,255,170,.18);
+      background: linear-gradient(180deg, rgba(9,20,18,.92), rgba(5,10,10,.92));
+      box-shadow: 0 18px 50px rgba(0,0,0,.55), var(--glow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    /* Scanlines + noise overlay (ONLY inside calculator) */
+    .pda::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,.035) 0px,
+          rgba(255,255,255,.02) 1px,
+          rgba(0,0,0,.0) 3px,
+          rgba(0,0,0,.0) 6px
+        );
+      mix-blend-mode: overlay;
+      opacity:.30;
+      pointer-events:none;
+    }
+    .pda::after{
+      content:"";
+      position:absolute; inset:-40px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      opacity:.12;
+      pointer-events:none;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      border-bottom: 1px solid rgba(60,255,170,.14);
+      background: linear-gradient(180deg, rgba(8,25,18,.65), rgba(5,10,10,.35));
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--txt2);
+      text-shadow: var(--glowStrong);
+      font-size: 13px;
+    }
+    .brand .dot{
+      width:10px; height:10px; border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #b7ffd7, #2aff9d 45%, #0b3b2b 80%);
+      box-shadow: 0 0 10px rgba(60,255,170,.35);
+    }
+    .status{
+      display:flex; align-items:center; gap:10px;
+      font-size:12px;
+      color: var(--dim);
+      opacity:.95;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .status .chip{
+      padding:6px 10px;
+      border:1px solid rgba(60,255,170,.18);
+      border-radius: 999px;
+      background: rgba(5,18,14,.55);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+      white-space:nowrap;
+    }
+
+    .content{ padding: 16px; height: calc(100% - 56px); }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      height: 100%;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; height:auto; }
+      .content{ height:auto; }
+    }
+
+    .panel{
+      border: 1px solid rgba(60,255,170,.16);
+      background: linear-gradient(180deg, rgba(7,22,18,.60), rgba(5,12,12,.55));
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+    }
+    .panel h2{
+      margin:0 0 10px;
+      font-size: 12px;
+      letter-spacing:.14em;
+      text-transform: uppercase;
+      color: var(--txt2);
+      opacity:.95;
+    }
+
+    label{
+      display:block;
+      margin: 10px 0 6px;
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing:.08em;
+      text-transform: uppercase;
+    }
+
+    input, select{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(60,255,170,.20);
+      background: rgba(2,8,7,.75);
+      color: var(--txt);
+      outline:none;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.45);
+    }
+    input:focus, select:focus{
+      border-color: rgba(60,255,170,.42);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.45), var(--glow);
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top: 10px;
+    }
+
+    /* Quick % buttons: grey by default */
+    .btn{
+      cursor:pointer;
+      border-radius: 999px;
+      border: 1px solid rgba(160,160,160,.22);
+      padding: 8px 10px;
+      background: linear-gradient(180deg, rgba(80,80,80,.22), rgba(10,10,10,.45));
+      color: rgba(220,220,220,.85);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+      font-family: var(--font);
+      font-size: 12px;
+      letter-spacing:.06em;
+      text-transform: uppercase;
+    }
+    .btn:hover{ filter: brightness(1.08); }
+
+    /* Active quick % turns green */
+    .btn.active{
+      border-color: rgba(60,255,170,.45);
+      background: linear-gradient(180deg, rgba(15,48,34,.55), rgba(5,12,10,.65));
+      color: var(--txt2);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), var(--glow);
+    }
+
+    .btn.reset{
+      border-color: rgba(255,107,107,.28);
+      color: var(--bad);
+    }
+
+    .selected{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(60,255,170,.18);
+      background: rgba(2,10,9,.68);
+    }
+    .selected .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(60,255,170,.18);
+      background: rgba(5,18,14,.55);
+      color: var(--txt);
+      font-size: 12px;
+      white-space:nowrap;
+      max-width: 65%;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .selected .right{
+      color: var(--dim);
+      font-size: 12px;
+      opacity:.95;
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .results{
+      margin-top: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(60,255,170,.18);
+      background: linear-gradient(180deg, rgba(2,12,10,.70), rgba(1,7,6,.72));
+      padding: 14px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+    }
+    .results .headline{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:baseline;
+      color: var(--dim);
+      font-size: 12px;
+      opacity:.95;
+    }
+    .results .big{
+      margin: 8px 0 6px;
+      font-size: 28px;
+      letter-spacing:.04em;
+      color: var(--txt2);
+      text-shadow: var(--glowStrong);
+      font-weight: 800;
+    }
+    .results .sub{
+      color: var(--dim);
+      font-size: 12px;
+      opacity:.9;
+    }
+
+    /* Mobile fallback if the frame becomes too small */
+    @media (max-width: 720px){
+      .frame{
+        aspect-ratio: auto;
+        background: none;
+        width: min(980px, 96vw);
+      }
+      .screen{
+        position: static;
+        inset: auto;
+      }
+      .pda{
+        border-radius: 18px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Trader Weapon Price Calculator</h1>
 
-    <div class="grid">
-      <div>
-        <label for="tier">Weapon Tier</label>
-        <select id="tier">
-          <option value="all">All tiers</option>
-          <option value="1">Tier 1</option>
-          <option value="2">Tier 2</option>
-          <option value="3">Tier 3</option>
-        </select>
-        <div class="hint">Tier 4 weapons still show under “All tiers”.</div>
+  <div class="frame">
+    <div class="screen">
+      <div class="pda">
+        <div class="topbar">
+          <div class="brand">
+            <span class="dot"></span>
+            <span>ZONA PDA • TRADER CALCULATOR</span>
+          </div>
+          <div class="status">
+            <span class="chip" id="statusLine">FILTER: ALL • ALL TYPES</span>
+            <span class="chip">LINK: ONLINE</span>
+          </div>
+        </div>
 
-        <div style="margin-top:12px;">
-          <label for="category">Weapon Type</label>
-          <select id="category">
-            <option value="all">All types</option>
-            <option value="pistol">Pistols / Revolvers</option>
-            <option value="shotgun">Shotguns</option>
-            <option value="smg">SMGs</option>
-            <option value="ar">ARs / Carbines</option>
-            <option value="dmr">DMRs</option>
-            <option value="sniper">Snipers</option>
-            <option value="lmg">LMGs</option>
-            <option value="launcher">Launchers</option>
-            <option value="special">Special</option>
-          </select>
+        <div class="content">
+          <div class="grid">
+            <div class="panel">
+              <h2>Filters</h2>
+
+              <label for="tier">Weapon Tier</label>
+              <select id="tier">
+                <option value="all">All tiers</option>
+                <option value="1">Tier 1</option>
+                <option value="2">Tier 2</option>
+                <option value="3">Tier 3</option>
+              </select>
+
+              <label for="category">Weapon Type</label>
+              <select id="category">
+                <option value="all">All types</option>
+                <option value="pistol">Pistols / Revolvers</option>
+                <option value="shotgun">Shotguns</option>
+                <option value="smg">SMGs</option>
+                <option value="ar">ARs / Carbines</option>
+                <option value="dmr">DMRs</option>
+                <option value="sniper">Snipers</option>
+                <option value="lmg">LMGs</option>
+                <option value="launcher">Launchers</option>
+                <option value="special">Special</option>
+              </select>
+
+              <label for="weaponSearch">Search</label>
+              <input id="weaponSearch" placeholder="Type to filter… (e.g., sr, 1911, ak)" />
+
+              <label for="weaponSelect">Weapon</label>
+              <select id="weaponSelect">
+                <option value="">Select a weapon…</option>
+              </select>
+            </div>
+
+            <div class="panel">
+              <h2>Trade</h2>
+
+              <div class="selected">
+                <div class="pill" id="selectedInfo">NO SELECTION</div>
+                <div class="right">Tier → Type → Search</div>
+              </div>
+
+              <label for="market">Market price (RU)</label>
+              <input id="market" inputmode="numeric" placeholder="e.g., 10000" />
+
+              <label for="profit">Profit %</label>
+              <input id="profit" inputmode="decimal" placeholder="e.g., 45" />
+
+              <label for="roundTo">Round to</label>
+              <input id="roundTo" inputmode="numeric" value="1" />
+
+              <div class="row" style="margin-top:12px;">
+                <span style="color:var(--dim); font-size:11px; letter-spacing:.08em; text-transform:uppercase;">Quick %</span>
+                <button class="btn" data-p="20">20</button>
+                <button class="btn" data-p="30">30</button>
+                <button class="btn" data-p="45">45</button>
+                <button class="btn" data-p="50">50</button>
+                <button class="btn reset" id="reset">Reset</button>
+              </div>
+
+              <div class="results">
+                <div class="headline">
+                  <div id="summary">Awaiting input…</div>
+                  <div id="meta">RU • ZONA</div>
+                </div>
+                <div class="big" id="sellPrice">—</div>
+                <div class="sub" id="profitAmt">—</div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
-
-      <div>
-        <label for="weaponSearch">Search weapon</label>
-        <input id="weaponSearch" placeholder="Type to filter… (e.g., sr, 1911, ak)" />
-        <div class="hint">Tier → Type → Search.</div>
-
-        <div style="margin-top:10px;">
-          <label>Selected</label>
-          <div class="pill" id="selectedInfo">None</div>
-        </div>
-      </div>
-
-      <div>
-        <label for="weaponSelect">Weapon</label>
-        <select id="weaponSelect">
-          <option value="">Select a weapon…</option>
-        </select>
-      </div>
-
-      <div>
-        <label for="market">Market price (what you pay)</label>
-        <input id="market" inputmode="numeric" placeholder="e.g., 10000" />
-      </div>
-
-      <div>
-        <label for="profit">Profit %</label>
-        <input id="profit" inputmode="decimal" placeholder="e.g., 45" />
-      </div>
-
-      <div>
-        <label for="roundTo">Round to</label>
-        <input id="roundTo" inputmode="numeric" value="1" />
-      </div>
-    </div>
-
-    <div class="row">
-      <span class="muted">Quick %:</span>
-      <button data-p="20">20%</button>
-      <button data-p="30">30%</button>
-      <button data-p="45">45%</button>
-      <button data-p="50">50%</button>
-      <button id="reset">Reset</button>
-    </div>
-
-    <div class="results">
-      <div class="muted" id="summary">Choose a weapon or enter values to calculate.</div>
-      <div class="big" id="sellPrice">—</div>
-      <div class="muted" id="profitAmt">—</div>
-    </div>
-
-    <div class="footer">
-      Formula: <b>Sell Price = Market Price × (1 + Profit%/100)</b><br/>
-      Rounding: set “Round to” to 1 (no rounding), 10, 50, 100, etc.
     </div>
   </div>
 
   <script>
-    // cat: pistol, shotgun, smg, ar, dmr, sniper, lmg, launcher, special
-    // DMR vs Sniper rule (your preference):
-    // - DMRs: semi-auto / marksman (SVD, SVU, SR-25, M14 EBR, VSS)
-    // - Snipers: bolt/precision/anti-material (SV-98, L115, TRG, Barrett, Accurate Rifle, VSSK, PTRS)
     const WEAPONS = [
-      // Tier 1 — Pistols
+      // Tier 1
       { name: "Beretta 92", tier: 1, cat: "pistol", market: 6000 },
       { name: "Browning Hi-Power", tier: 1, cat: "pistol", market: 2400 },
       { name: "CZ-52", tier: 1, cat: "pistol", market: 3000 },
@@ -144,14 +413,12 @@
       { name: "Ruger MKIII", tier: 1, cat: "pistol", market: 6000 },
       { name: "Tokarev TT-33", tier: 1, cat: "pistol", market: 1600 },
 
-      // Tier 1 — SMGs
       { name: "Skorpion", tier: 1, cat: "smg", market: 12400 },
       { name: "Sten Gun Mk II", tier: 1, cat: "smg", market: 7000 },
       { name: "Sterling", tier: 1, cat: "smg", market: 19200 },
       { name: "MP34", tier: 1, cat: "smg", market: 13000 },
       { name: "MP40", tier: 1, cat: "smg", market: 14400 },
 
-      // Tier 1 — Shotguns
       { name: "TOZ BM-16", tier: 1, cat: "shotgun", market: 8800 },
       { name: "TOZ-106", tier: 1, cat: "shotgun", market: 8000 },
       { name: "TOZ-34 Hunting", tier: 1, cat: "shotgun", market: 15000 },
@@ -161,14 +428,12 @@
       { name: "MP-18", tier: 1, cat: "shotgun", market: 18000 },
       { name: "MP-27", tier: 1, cat: "shotgun", market: 11600 },
 
-      // Tier 1 — AR/Carbines (cheap rifles live here)
       { name: "Ruger 10/22", tier: 1, cat: "ar", market: 13200 },
       { name: "Winchester Model 1894", tier: 1, cat: "ar", market: 35000 },
 
-      // Tier 1 — Sniper (sawed rifle)
       { name: "Obrez", tier: 1, cat: "sniper", market: 14700 },
 
-      // Tier 2 — Pistols
+      // Tier 2
       { name: "Glock 17", tier: 2, cat: "pistol", market: 9600 },
       { name: "Glock 18", tier: 2, cat: "pistol", market: 13400 },
       { name: "M1911", tier: 2, cat: "pistol", market: 13200 },
@@ -176,8 +441,8 @@
       { name: "Mauser C96", tier: 2, cat: "pistol", market: 6900 },
       { name: "Mateba Autorevolver", tier: 2, cat: "pistol", market: 28000 },
       { name: "Smith & Wesson", tier: 2, cat: "pistol", market: 38000 },
+      { name: "G2 Contender", tier: 2, cat: "pistol", market: 1200 },
 
-      // Tier 2 — SMGs
       { name: "9A-91", tier: 2, cat: "smg", market: 70000 },
       { name: "AKS-74U", tier: 2, cat: "smg", market: 25500 },
       { name: "H&K UMP", tier: 2, cat: "smg", market: 29400 },
@@ -195,7 +460,6 @@
       { name: "MAC-11", tier: 2, cat: "smg", market: 12000 },
       { name: "M1928A1 Thompson", tier: 2, cat: "smg", market: 36000 },
 
-      // Tier 2 — Shotguns
       { name: "Baikal MP-153", tier: 2, cat: "shotgun", market: 22000 },
       { name: "Ithaca 37", tier: 2, cat: "shotgun", market: 27000 },
       { name: "M1887", tier: 2, cat: "shotgun", market: 19000 },
@@ -204,7 +468,6 @@
       { name: "Remington 870", tier: 2, cat: "shotgun", market: 28000 },
       { name: "Saiga Semi-auto", tier: 2, cat: "shotgun", market: 32800 },
 
-      // Tier 2 — ARs/Carbines
       { name: "AK-74", tier: 2, cat: "ar", market: 30000 },
       { name: "AKM", tier: 2, cat: "ar", market: 38500 },
       { name: "AR-15 9mm", tier: 2, cat: "ar", market: 36000 },
@@ -216,23 +479,17 @@
       { name: "SKS", tier: 2, cat: "ar", market: 27000 },
       { name: "SIG SG 552", tier: 2, cat: "ar", market: 48000 },
 
-      // Tier 2 — DMR / Sniper
       { name: "SVT-40", tier: 2, cat: "dmr", market: 66000 },
       { name: "Mosin Nagant", tier: 2, cat: "sniper", market: 52000 },
 
-      // Tier 2 — LMG
       { name: "DP-28", tier: 2, cat: "lmg", market: 71200 },
 
-      // Tier 2 — “Other” (kept as pistol, since it’s a single-shot handgun)
-      { name: "G2 Contender", tier: 2, cat: "pistol", market: 1200 },
-
-      // Tier 3 — Pistols
+      // Tier 3
       { name: "Five-seveN", tier: 3, cat: "pistol", market: 35000 },
       { name: "Stechkin APS", tier: 3, cat: "pistol", market: 15000 },
       { name: "Taurus Judge", tier: 3, cat: "pistol", market: 13600 },
       { name: "Taurus Raging Bull", tier: 3, cat: "pistol", market: 27000 },
 
-      // Tier 3 — Snipers (bolt/precision/anti-material)
       { name: "Accurate Rifle", tier: 3, cat: "sniper", market: 1600000 },
       { name: "Barrett M98B", tier: 3, cat: "sniper", market: 196000 },
       { name: "Sako TRG-42", tier: 3, cat: "sniper", market: 64000 },
@@ -241,14 +498,12 @@
       { name: "VSSK “Vykhlop”", tier: 3, cat: "sniper", market: 190000 },
       { name: "PTRS-41", tier: 3, cat: "sniper", market: 300000 },
 
-      // Tier 3 — DMRs
       { name: "Dragunov SVD", tier: 3, cat: "dmr", market: 88000 },
       { name: "SVU-A", tier: 3, cat: "dmr", market: 152000 },
       { name: "M14 EBR", tier: 3, cat: "dmr", market: 75000 },
       { name: "SR-25", tier: 3, cat: "dmr", market: 133500 },
       { name: "VSS Vintorez", tier: 3, cat: "dmr", market: 90000 },
 
-      // Tier 3 — ARs/Carbines
       { name: "AEK-971", tier: 3, cat: "ar", market: 48400 },
       { name: "AK-12", tier: 3, cat: "ar", market: 59200 },
       { name: "AN-94", tier: 3, cat: "ar", market: 57200 },
@@ -263,30 +518,26 @@
       { name: "SR-3M “Vikhr”", tier: 3, cat: "ar", market: 90000 },
       { name: "Steyr AUG", tier: 3, cat: "ar", market: 57000 },
 
-      // Tier 3 — SMG
       { name: "FN P90", tier: 3, cat: "smg", market: 38000 },
 
-      // Tier 3 — Shotguns
       { name: "Serbu Super-Shorty", tier: 3, cat: "shotgun", market: 14400 },
       { name: "Stoeger Double Defense", tier: 3, cat: "shotgun", market: 19000 },
       { name: "Striker", tier: 3, cat: "shotgun", market: 57800 },
       { name: "Saiga-12", tier: 3, cat: "shotgun", market: 41200 },
       { name: "Franchi SPAS-12", tier: 3, cat: "shotgun", market: 35000 },
 
-      // Tier 3 — LMGs
       { name: "RPK", tier: 3, cat: "lmg", market: 70000 },
       { name: "PKM", tier: 3, cat: "lmg", market: 200000 },
       { name: "PKP “Pecheneg”", tier: 3, cat: "lmg", market: 350000 },
       { name: "M240B", tier: 3, cat: "lmg", market: 465000 },
 
-      // Tier 3 — Launcher
       { name: "RPG-7U", tier: 3, cat: "launcher", market: 4400000 },
 
-      // Tier 4 (still selectable under All tiers)
+      // Tier 4 (still visible under "All tiers")
       { name: "TKPD", tier: 4, cat: "special", market: 190000 },
       { name: "Gauss Rifle", tier: 4, cat: "special", market: 8800000 },
 
-      // Special (kept Tier 3 for now; if it’s Tier 4 on your server, we can flip it)
+      // Special (if your server makes it Tier 4 later, we can flip it)
       { name: "EM1", tier: 3, cat: "special", market: 8800000 }
     ];
 
@@ -302,20 +553,32 @@
     const summaryEl = document.getElementById('summary');
     const sellPriceEl = document.getElementById('sellPrice');
     const profitAmtEl = document.getElementById('profitAmt');
+    const statusLineEl = document.getElementById('statusLine');
 
     function toNumber(val) {
       const cleaned = String(val).replace(/[, ]+/g, '');
       const n = Number(cleaned);
       return Number.isFinite(n) ? n : NaN;
     }
-
     function formatMoney(n) {
       return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
     }
-
     function roundTo(n, step) {
       if (!Number.isFinite(step) || step <= 0) return n;
       return Math.round(n / step) * step;
+    }
+    function catLabel(c){
+      const map = {
+        pistol:"PISTOL", shotgun:"SHOTGUN", smg:"SMG", ar:"AR",
+        dmr:"DMR", sniper:"SNIPER", lmg:"LMG", launcher:"LAUNCHER", special:"SPECIAL"
+      };
+      return map[c] || String(c).toUpperCase();
+    }
+
+    function updateStatusLine(){
+      const t = tierEl.value === "all" ? "ALL" : `T${tierEl.value}`;
+      const c = catEl.value === "all" ? "ALL TYPES" : catLabel(catEl.value);
+      statusLineEl.textContent = `FILTER: ${t} • ${c}`;
     }
 
     function getFilteredWeapons() {
@@ -347,18 +610,19 @@
         weaponSelectEl.value = stillExists ? prior : "";
       }
       handleWeaponChange(false);
+      updateStatusLine();
     }
 
     function handleWeaponChange(autoCalc = true) {
       const selectedName = weaponSelectEl.value;
       if (!selectedName) {
-        selectedInfoEl.textContent = "None";
+        selectedInfoEl.textContent = "NO SELECTION";
         if (autoCalc) calc();
         return;
       }
 
       const w = WEAPONS.find(x => x.name === selectedName);
-      selectedInfoEl.textContent = `Tier ${w.tier} • ${w.cat.toUpperCase()} • Market ${formatMoney(w.market)}`;
+      selectedInfoEl.textContent = `${w.name} • TIER ${w.tier} • ${catLabel(w.cat)} • RU ${formatMoney(w.market)}`;
       marketEl.value = w.market;
 
       if (autoCalc) calc();
@@ -371,7 +635,7 @@
       const step = toNumber(roundToEl.value);
 
       if (!Number.isFinite(market) || !Number.isFinite(pct)) {
-        summaryEl.textContent = "Enter a market price and profit % (or pick a weapon).";
+        summaryEl.textContent = "Awaiting input…";
         sellPriceEl.textContent = "—";
         profitAmtEl.textContent = "—";
         return;
@@ -381,25 +645,36 @@
       const sell = roundTo(sellRaw, step);
       const profit = sell - market;
 
-      const name = selectedName ? ` (${selectedName})` : "";
-      summaryEl.textContent = `Market${name}: ${formatMoney(market)} | Profit: ${pct}%`;
-      sellPriceEl.textContent = `Sell for: ${formatMoney(sell)}`;
-      profitAmtEl.textContent = `Profit: ${formatMoney(profit)} (before fees/tax)`;
+      const name = selectedName ? `(${selectedName}) ` : "";
+      summaryEl.textContent = `${name}Market RU ${formatMoney(market)} • Profit ${pct}%`;
+      sellPriceEl.textContent = `SELL: RU ${formatMoney(sell)}`;
+      profitAmtEl.textContent = `PROFIT: RU ${formatMoney(profit)} (before fees/tax)`;
     }
 
+    // Filters
     tierEl.addEventListener('change', () => rebuildWeaponDropdown(true));
     catEl.addEventListener('change', () => rebuildWeaponDropdown(true));
     weaponSearchEl.addEventListener('input', () => rebuildWeaponDropdown(true));
     weaponSelectEl.addEventListener('change', () => handleWeaponChange(true));
-    [marketEl, profitEl, roundToEl].forEach(el => el.addEventListener('input', calc));
 
+    // Inputs
+    [marketEl, profitEl, roundToEl].forEach(el => el.addEventListener('input', () => {
+      // if user types a custom percent, clear active highlight
+      if (el === profitEl) document.querySelectorAll('button[data-p]').forEach(b => b.classList.remove('active'));
+      calc();
+    }));
+
+    // Quick % buttons with "active" highlight
     document.querySelectorAll('button[data-p]').forEach(btn => {
       btn.addEventListener('click', () => {
         profitEl.value = btn.dataset.p;
+        document.querySelectorAll('button[data-p]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
         calc();
       });
     });
 
+    // Reset
     document.getElementById('reset').addEventListener('click', () => {
       tierEl.value = "all";
       catEl.value = "all";
@@ -408,13 +683,16 @@
       profitEl.value = "";
       marketEl.value = "";
       roundToEl.value = "1";
-      selectedInfoEl.textContent = "None";
+      selectedInfoEl.textContent = "NO SELECTION";
+      document.querySelectorAll('button[data-p]').forEach(b => b.classList.remove('active'));
       rebuildWeaponDropdown(false);
       calc();
       weaponSelectEl.focus();
     });
 
+    // Init
     rebuildWeaponDropdown(false);
+    updateStatusLine();
   </script>
 </body>
 </html>
