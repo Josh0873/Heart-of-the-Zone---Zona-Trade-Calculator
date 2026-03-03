@@ -19,7 +19,6 @@
     }
     *{ box-sizing:border-box; }
 
-    /* ===== OUTER PAGE BACKGROUND ===== */
     body{
       margin:0;
       min-height:100vh;
@@ -34,35 +33,31 @@
       padding: 18px;
     }
 
-    /* ===== PDA FRAME IMAGE =====
-       Your repo filename is: pda-frame.png (same folder as index.html)
-    */
+    /* Frame image file: pda-frame.png (repo root) */
     .frame{
-      width: min(1900px, 99vw);   /* bigger frame so it wraps the calculator */
+      width: min(1900px, 99vw);
       max-height: 96vh;
       aspect-ratio: 16 / 9;
-      background: url("./pda-frame.png?v=7") center / contain no-repeat; /* cache-buster */
+      background: url("./pda-frame.png?v=10") center / contain no-repeat;
       position: relative;
       filter: drop-shadow(0 24px 60px rgba(0,0,0,.65));
     }
 
-    /* Screen area inside frame (leave these to keep your calculator size) */
+    /* YOUR SCREEN VALUES */
     .screen{
-  position: absolute;
-  left: 16.5%;
-  right: 18.3%;
-  top: 14.9%;
-  bottom: 20%;
-  display:flex;
-  align-items:stretch;
-  justify-content:center;
-}
+      position: absolute;
+      left: 16.5%;
+      right: 18.3%;
+      top: 14.9%;
+      bottom: 20%;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+    }
 
-    /* ===== CALCULATOR SCREEN ===== */
     .pda{
       width:100%;
       height:100%;
-      margin:0;
       border-radius: 18px;
       border: 1px solid rgba(60,255,170,.18);
       background: linear-gradient(180deg, rgba(9,20,18,.92), rgba(5,10,10,.92));
@@ -71,7 +66,6 @@
       position:relative;
     }
 
-    /* Scanlines + noise */
     .pda::before{
       content:"";
       position:absolute; inset:0;
@@ -195,7 +189,6 @@
       margin-top:10px;
     }
 
-    /* Quick % buttons (grey) */
     .btn{
       cursor:pointer;
       border-radius:999px;
@@ -211,7 +204,6 @@
     }
     .btn:hover{ filter: brightness(1.08); }
 
-    /* Selected % turns green */
     .btn.active{
       border-color: rgba(60,255,170,.45);
       background: linear-gradient(180deg, rgba(15,48,34,.55), rgba(5,12,10,.65));
@@ -287,8 +279,8 @@
       font-size:12px;
       opacity:.9;
     }
+    #sellableTag{ margin-top: 6px; opacity: .95; }
 
-    /* Mobile fallback */
     @media (max-width: 720px){
       .frame{
         aspect-ratio:auto;
@@ -327,6 +319,7 @@
                 <option value="1">Tier 1</option>
                 <option value="2">Tier 2</option>
                 <option value="3">Tier 3</option>
+                <option value="4">Tier 4</option>
               </select>
 
               <label for="category">Weapon Type</label>
@@ -385,6 +378,7 @@
                 </div>
                 <div class="big" id="sellPrice">—</div>
                 <div class="sub" id="profitAmt">—</div>
+                <div class="sub" id="sellableTag">—</div>
               </div>
             </div>
           </div>
@@ -397,145 +391,134 @@
   <script>
     const WEAPONS = [
       // Tier 1
-      { name: "Beretta 92", tier: 1, cat: "pistol", market: 6000 },
-      { name: "Browning Hi-Power", tier: 1, cat: "pistol", market: 2400 },
-      { name: "CZ-52", tier: 1, cat: "pistol", market: 3000 },
-      { name: "Fort-12", tier: 1, cat: "pistol", market: 3000 },
-      { name: "Iver Johnson Champion", tier: 1, cat: "pistol", market: 11600 },
-      { name: "Luger P08", tier: 1, cat: "pistol", market: 8500 },
-      { name: "Makarov", tier: 1, cat: "pistol", market: 1800 },
-      { name: "Nagant Revolver", tier: 1, cat: "pistol", market: 600 },
-      { name: "P99", tier: 1, cat: "pistol", market: 8500 },
-      { name: "Ruger MKIII", tier: 1, cat: "pistol", market: 6000 },
-      { name: "Tokarev TT-33", tier: 1, cat: "pistol", market: 1600 },
+      { name: "Beretta 92", tier: 1, cat: "pistol", market: 6000, sellable: true },
+      { name: "Browning Hi-Power", tier: 1, cat: "pistol", market: 2400, sellable: true },
+      { name: "CZ-52", tier: 1, cat: "pistol", market: 3000, sellable: true },
+      { name: "Fort-12", tier: 1, cat: "pistol", market: 3000, sellable: true },
+      { name: "Iver Johnson Champion", tier: 1, cat: "pistol", market: 11600, sellable: true },
+      { name: "Luger P08", tier: 1, cat: "pistol", market: 8500, sellable: true },
+      { name: "Makarov", tier: 1, cat: "pistol", market: 1800, sellable: true },
+      { name: "Nagant Revolver", tier: 1, cat: "pistol", market: 600, sellable: true },
+      { name: "P99", tier: 1, cat: "pistol", market: 8500, sellable: true },
+      { name: "Ruger MKIII", tier: 1, cat: "pistol", market: 6000, sellable: true },
+      { name: "Tokarev TT-33", tier: 1, cat: "pistol", market: 1600, sellable: true },
 
-      { name: "Skorpion", tier: 1, cat: "smg", market: 12400 },
-      { name: "Sten Gun Mk II", tier: 1, cat: "smg", market: 7000 },
-      { name: "Sterling", tier: 1, cat: "smg", market: 19200 },
-      { name: "MP34", tier: 1, cat: "smg", market: 13000 },
-      { name: "MP40", tier: 1, cat: "smg", market: 14400 },
+      { name: "Skorpion", tier: 1, cat: "smg", market: 12400, sellable: true },
+      { name: "Sten Gun Mk II", tier: 1, cat: "smg", market: 7000, sellable: true },
+      { name: "Sterling", tier: 1, cat: "smg", market: 19200, sellable: true },
+      { name: "MP34", tier: 1, cat: "smg", market: 13000, sellable: true },
+      { name: "MP40", tier: 1, cat: "smg", market: 14400, sellable: true },
 
-      { name: "TOZ BM-16", tier: 1, cat: "shotgun", market: 8800 },
-      { name: "TOZ-106", tier: 1, cat: "shotgun", market: 8000 },
-      { name: "TOZ-34 Hunting", tier: 1, cat: "shotgun", market: 15000 },
-      { name: "TOZ-34 Sawed-off", tier: 1, cat: "shotgun", market: 8000 },
-      { name: "TOZ-34 Sport", tier: 1, cat: "shotgun", market: 55000 },
-      { name: "TOZ-66", tier: 1, cat: "shotgun", market: 15800 },
-      { name: "MP-18", tier: 1, cat: "shotgun", market: 18000 },
-      { name: "MP-27", tier: 1, cat: "shotgun", market: 11600 },
+      { name: "TOZ BM-16", tier: 1, cat: "shotgun", market: 8800, sellable: true },
+      { name: "TOZ-106", tier: 1, cat: "shotgun", market: 8000, sellable: true },
+      { name: "TOZ-34 Hunting", tier: 1, cat: "shotgun", market: 15000, sellable: true },
+      { name: "TOZ-34 Sawed-off", tier: 1, cat: "shotgun", market: 8000, sellable: true },
+      { name: "TOZ-34 Sport", tier: 1, cat: "shotgun", market: 55000, sellable: true },
+      { name: "TOZ-66", tier: 1, cat: "shotgun", market: 15800, sellable: true },
+      { name: "MP-18", tier: 1, cat: "shotgun", market: 18000, sellable: true },
+      { name: "MP-27", tier: 1, cat: "shotgun", market: 11600, sellable: true },
 
-      { name: "Ruger 10/22", tier: 1, cat: "ar", market: 13200 },
-      { name: "Winchester Model 1894", tier: 1, cat: "ar", market: 35000 },
+      { name: "Ruger 10/22", tier: 1, cat: "ar", market: 13200, sellable: true },
+      { name: "Winchester Model 1894", tier: 1, cat: "ar", market: 35000, sellable: true },
 
-      { name: "Obrez", tier: 1, cat: "sniper", market: 14700 },
+      { name: "Obrez", tier: 1, cat: "sniper", market: 14700, sellable: true },
 
       // Tier 2
-      { name: "Glock 17", tier: 2, cat: "pistol", market: 9600 },
-      { name: "Glock 18", tier: 2, cat: "pistol", market: 13400 },
-      { name: "M1911", tier: 2, cat: "pistol", market: 13200 },
-      { name: "M1917 Revolver", tier: 2, cat: "pistol", market: 1700 },
-      { name: "Mauser C96", tier: 2, cat: "pistol", market: 6900 },
-      { name: "Mateba Autorevolver", tier: 2, cat: "pistol", market: 28000 },
-      { name: "Smith & Wesson", tier: 2, cat: "pistol", market: 38000 },
-      { name: "G2 Contender", tier: 2, cat: "pistol", market: 1200 },
+      { name: "Glock 17", tier: 2, cat: "pistol", market: 9600, sellable: true },
+      { name: "Glock 18", tier: 2, cat: "pistol", market: 13400, sellable: true },
+      { name: "M1911", tier: 2, cat: "pistol", market: 13200, sellable: true },
+      { name: "M1917 Revolver", tier: 2, cat: "pistol", market: 1700, sellable: true },
+      { name: "Mauser C96", tier: 2, cat: "pistol", market: 6900, sellable: true },
+      { name: "Mateba Autorevolver", tier: 2, cat: "pistol", market: 28000, sellable: true },
+      { name: "Smith & Wesson", tier: 2, cat: "pistol", market: 38000, sellable: true },
+      { name: "G2 Contender", tier: 2, cat: "pistol", market: 1200, sellable: true },
 
-      { name: "9A-91", tier: 2, cat: "smg", market: 70000 },
-      { name: "AKS-74U", tier: 2, cat: "smg", market: 25500 },
-      { name: "H&K UMP", tier: 2, cat: "smg", market: 29400 },
-      { name: "HK MP5", tier: 2, cat: "smg", market: 25500 },
-      { name: "MP5K", tier: 2, cat: "smg", market: 19000 },
-      { name: "MP9A1", tier: 2, cat: "smg", market: 22200 },
-      { name: "IMI Uzi", tier: 2, cat: "smg", market: 15000 },
-      { name: "IMI Uzi Custom", tier: 2, cat: "smg", market: 19000 },
-      { name: "KP-31", tier: 2, cat: "smg", market: 19200 },
-      { name: "OTs-02 Kiparis", tier: 2, cat: "smg", market: 12600 },
-      { name: "PP-19 “Bizon”", tier: 2, cat: "smg", market: 32000 },
-      { name: "PP-2000", tier: 2, cat: "smg", market: 28000 },
-      { name: "PPSh-41", tier: 2, cat: "smg", market: 8400 },
-      { name: "SR-2 Veresk", tier: 2, cat: "smg", market: 36000 },
-      { name: "MAC-11", tier: 2, cat: "smg", market: 12000 },
-      { name: "M1928A1 Thompson", tier: 2, cat: "smg", market: 36000 },
+      { name: "AKS-74U", tier: 2, cat: "smg", market: 25500, sellable: true },
+      { name: "H&K UMP", tier: 2, cat: "smg", market: 29400, sellable: true },
+      { name: "HK MP5", tier: 2, cat: "smg", market: 25500, sellable: true },
+      { name: "MP5K", tier: 2, cat: "smg", market: 19000, sellable: true },
+      { name: "MP9A1", tier: 2, cat: "smg", market: 22200, sellable: true },
+      { name: "IMI Uzi", tier: 2, cat: "smg", market: 15000, sellable: true },
+      { name: "IMI Uzi Custom", tier: 2, cat: "smg", market: 19000, sellable: true },
+      { name: "KP-31", tier: 2, cat: "smg", market: 19200, sellable: true },
+      { name: "OTs-02 Kiparis", tier: 2, cat: "smg", market: 12600, sellable: true },
+      { name: "PP-19 “Bizon”", tier: 2, cat: "smg", market: 32000, sellable: true },
+      { name: "PP-2000", tier: 2, cat: "smg", market: 28000, sellable: true },
+      { name: "PPSh-41", tier: 2, cat: "smg", market: 8400, sellable: true },
+      { name: "MAC-11", tier: 2, cat: "smg", market: 12000, sellable: true },
+      { name: "M1928A1 Thompson", tier: 2, cat: "smg", market: 36000, sellable: true },
 
-      { name: "Baikal MP-153", tier: 2, cat: "shotgun", market: 22000 },
-      { name: "Ithaca 37", tier: 2, cat: "shotgun", market: 27000 },
-      { name: "M1887", tier: 2, cat: "shotgun", market: 19000 },
-      { name: "M3 Super 90", tier: 2, cat: "shotgun", market: 23000 },
-      { name: "Mossberg 500", tier: 2, cat: "shotgun", market: 20400 },
-      { name: "Remington 870", tier: 2, cat: "shotgun", market: 28000 },
-      { name: "Saiga Semi-auto", tier: 2, cat: "shotgun", market: 32800 },
+      { name: "Baikal MP-153", tier: 2, cat: "shotgun", market: 22000, sellable: true },
+      { name: "Ithaca 37", tier: 2, cat: "shotgun", market: 27000, sellable: true },
+      { name: "M1887", tier: 2, cat: "shotgun", market: 19000, sellable: true },
+      { name: "M3 Super 90", tier: 2, cat: "shotgun", market: 23000, sellable: true },
+      { name: "Mossberg 500", tier: 2, cat: "shotgun", market: 20400, sellable: true },
+      { name: "Remington 870", tier: 2, cat: "shotgun", market: 28000, sellable: true },
+      { name: "Saiga Semi-auto", tier: 2, cat: "shotgun", market: 32800, sellable: true },
 
-      { name: "AK-74", tier: 2, cat: "ar", market: 30000 },
-      { name: "AKM", tier: 2, cat: "ar", market: 38500 },
-      { name: "AR-15 9mm", tier: 2, cat: "ar", market: 36000 },
-      { name: "LR-300", tier: 2, cat: "ar", market: 46200 },
-      { name: "M16A4", tier: 2, cat: "ar", market: 45000 },
-      { name: "Marlin 1894", tier: 2, cat: "ar", market: 42000 },
-      { name: "Ruger Mini-14", tier: 2, cat: "ar", market: 25800 },
-      { name: "Sako 85", tier: 2, cat: "ar", market: 53400 },
-      { name: "SKS", tier: 2, cat: "ar", market: 27000 },
-      { name: "SIG SG 552", tier: 2, cat: "ar", market: 48000 },
+      { name: "AK-74", tier: 2, cat: "ar", market: 30000, sellable: true },
+      { name: "AKM", tier: 2, cat: "ar", market: 38500, sellable: true },
+      { name: "AR-15 9mm", tier: 2, cat: "ar", market: 36000, sellable: true },
+      { name: "LR-300", tier: 2, cat: "ar", market: 46200, sellable: true },
+      { name: "M16A4", tier: 2, cat: "ar", market: 45000, sellable: true },
+      { name: "Marlin 1894", tier: 2, cat: "ar", market: 42000, sellable: true },
+      { name: "Ruger Mini-14", tier: 2, cat: "ar", market: 25800, sellable: true },
+      { name: "Sako 85", tier: 2, cat: "ar", market: 53400, sellable: true },
+      { name: "SKS", tier: 2, cat: "ar", market: 27000, sellable: true },
+      { name: "SIG SG 552", tier: 2, cat: "ar", market: 48000, sellable: true },
 
-      { name: "SVT-40", tier: 2, cat: "dmr", market: 66000 },
-      { name: "Mosin Nagant", tier: 2, cat: "sniper", market: 52000 },
-
-      { name: "DP-28", tier: 2, cat: "lmg", market: 71200 },
+      { name: "SVT-40", tier: 2, cat: "dmr", market: 66000, sellable: true },
+      { name: "Mosin Nagant", tier: 2, cat: "sniper", market: 52000, sellable: true },
 
       // Tier 3
-      { name: "Five-seveN", tier: 3, cat: "pistol", market: 35000 },
-      { name: "Stechkin APS", tier: 3, cat: "pistol", market: 15000 },
-      { name: "Taurus Judge", tier: 3, cat: "pistol", market: 13600 },
-      { name: "Taurus Raging Bull", tier: 3, cat: "pistol", market: 27000 },
+      { name: "Five-seveN", tier: 3, cat: "pistol", market: 35000, sellable: true },
+      { name: "Stechkin APS", tier: 3, cat: "pistol", market: 15000, sellable: true },
+      { name: "Taurus Judge", tier: 3, cat: "pistol", market: 13600, sellable: true },
+      { name: "Taurus Raging Bull", tier: 3, cat: "pistol", market: 27000, sellable: true },
+      { name: "Accurate Rifle", tier: 3, cat: "sniper", market: 1600000, sellable: true },
+      { name: "EM1", tier: 3, cat: "special", market: 8800000, sellable: true },
 
-      { name: "Accurate Rifle", tier: 3, cat: "sniper", market: 1600000 },
-      { name: "Barrett M98B", tier: 3, cat: "sniper", market: 196000 },
-      { name: "Sako TRG-42", tier: 3, cat: "sniper", market: 64000 },
-      { name: "L115", tier: 3, cat: "sniper", market: 130000 },
-      { name: "SV-98", tier: 3, cat: "sniper", market: 77000 },
-      { name: "VSSK “Vykhlop”", tier: 3, cat: "sniper", market: 190000 },
-      { name: "PTRS-41", tier: 3, cat: "sniper", market: 300000 },
+      // Tier 4
+      { name: "SR-3M “Vikhr”", tier: 4, cat: "ar", market: 90000, sellable: true },
+      { name: "AS Val", tier: 4, cat: "ar", market: 84000, sellable: true },
 
-      { name: "Dragunov SVD", tier: 3, cat: "dmr", market: 88000 },
-      { name: "SVU-A", tier: 3, cat: "dmr", market: 152000 },
-      { name: "M14 EBR", tier: 3, cat: "dmr", market: 75000 },
-      { name: "SR-25", tier: 3, cat: "dmr", market: 133500 },
-      { name: "VSS Vintorez", tier: 3, cat: "dmr", market: 90000 },
+      { name: "9A-91", tier: 4, cat: "smg", market: 70000, sellable: true },
+      { name: "SR-2 Veresk", tier: 4, cat: "smg", market: 36000, sellable: true },
 
-      { name: "AEK-971", tier: 3, cat: "ar", market: 48400 },
-      { name: "AK-12", tier: 3, cat: "ar", market: 59200 },
-      { name: "AN-94", tier: 3, cat: "ar", market: 57200 },
-      { name: "FAMAS", tier: 3, cat: "ar", market: 47400 },
-      { name: "FN F2000", tier: 3, cat: "ar", market: 57000 },
-      { name: "FN FAL", tier: 3, cat: "ar", market: 72000 },
-      { name: "HK G36C", tier: 3, cat: "ar", market: 49800 },
-      { name: "HK416", tier: 3, cat: "ar", market: 58000 },
-      { name: "L85", tier: 3, cat: "ar", market: 49200 },
-      { name: "SAKO RK 95", tier: 3, cat: "ar", market: 50300 },
-      { name: "AS Val", tier: 3, cat: "ar", market: 84000 },
-      { name: "SR-3M “Vikhr”", tier: 3, cat: "ar", market: 90000 },
-      { name: "Steyr AUG", tier: 3, cat: "ar", market: 57000 },
+      { name: "Barrett M98B", tier: 4, cat: "sniper", market: 196000, sellable: true },
+      { name: "L115", tier: 4, cat: "sniper", market: 130000, sellable: true },
+      { name: "Sako TRG-42", tier: 4, cat: "sniper", market: 64000, sellable: true },
+      { name: "SV-98", tier: 4, cat: "sniper", market: 77000, sellable: true },
+      { name: "VSSK “Vykhlop”", tier: 4, cat: "sniper", market: 190000, sellable: true },
+      { name: "PTRS-41", tier: 4, cat: "sniper", market: 300000, sellable: true },
 
-      { name: "FN P90", tier: 3, cat: "smg", market: 38000 },
+      { name: "SR-25", tier: 4, cat: "dmr", market: 133500, sellable: true },
+      { name: "SVU-A", tier: 4, cat: "dmr", market: 152000, sellable: true },
+      { name: "VSS Vintorez", tier: 4, cat: "dmr", market: 90000, sellable: true },
 
-      { name: "Serbu Super-Shorty", tier: 3, cat: "shotgun", market: 14400 },
-      { name: "Stoeger Double Defense", tier: 3, cat: "shotgun", market: 19000 },
-      { name: "Striker", tier: 3, cat: "shotgun", market: 57800 },
-      { name: "Saiga-12", tier: 3, cat: "shotgun", market: 41200 },
-      { name: "Franchi SPAS-12", tier: 3, cat: "shotgun", market: 35000 },
+      { name: "Franchi SPAS-12", tier: 4, cat: "shotgun", market: 35000, sellable: true },
+      { name: "Striker", tier: 4, cat: "shotgun", market: 57800, sellable: true },
 
-      { name: "RPK", tier: 3, cat: "lmg", market: 70000 },
-      { name: "PKM", tier: 3, cat: "lmg", market: 200000 },
-      { name: "PKP “Pecheneg”", tier: 3, cat: "lmg", market: 350000 },
-      { name: "M240B", tier: 3, cat: "lmg", market: 465000 },
+      { name: "DP-28", tier: 4, cat: "lmg", market: 71200, sellable: true },
+      { name: "PKM", tier: 4, cat: "lmg", market: 200000, sellable: true },
+      { name: "PKP “Pecheneg”", tier: 4, cat: "lmg", market: 350000, sellable: true },
+      { name: "M240B", tier: 4, cat: "lmg", market: 465000, sellable: true },
 
-      { name: "RPG-7U", tier: 3, cat: "launcher", market: 4400000 },
+      { name: "RPG-7U", tier: 4, cat: "launcher", market: 4400000, sellable: true },
+      { name: "TKPD", tier: 4, cat: "special", market: 190000, sellable: true },
+      { name: "Gauss Rifle", tier: 4, cat: "special", market: 8800000, sellable: true },
 
-      // Tier 4 (still visible under "All tiers")
-      { name: "TKPD", tier: 4, cat: "special", market: 190000 },
-      { name: "Gauss Rifle", tier: 4, cat: "special", market: 8800000 },
-
-      // Special (if your server makes it Tier 4 later, we can flip it)
-      { name: "EM1", tier: 3, cat: "special", market: 8800000 }
+      // Tier 4 placeholders
+      { name: "MRAD", tier: 4, cat: "sniper", market: 0, sellable: true },
+      { name: "Stoner", tier: 4, cat: "lmg", market: 0, sellable: true },
+      { name: "M60", tier: 4, cat: "lmg", market: 0, sellable: true },
+      { name: "Remington MSR", tier: 4, cat: "sniper", market: 0, sellable: true },
+      { name: "700 Nitro", tier: 4, cat: "sniper", market: 0, sellable: true },
+      { name: "PTRS/PTRD", tier: 4, cat: "sniper", market: 0, sellable: true },
     ];
+
+    // ✅ Make Tier 4 non-sellable automatically
+    WEAPONS.forEach(w => { if (w.tier === 4) w.sellable = false; });
 
     const tierEl = document.getElementById('tier');
     const catEl = document.getElementById('category');
@@ -549,6 +532,7 @@
     const summaryEl = document.getElementById('summary');
     const sellPriceEl = document.getElementById('sellPrice');
     const profitAmtEl = document.getElementById('profitAmt');
+    const sellableTagEl = document.getElementById('sellableTag');
     const statusLineEl = document.getElementById('statusLine');
 
     function toNumber(val) {
@@ -598,7 +582,7 @@
         filtered
           .slice()
           .sort((a,b) => a.name.localeCompare(b.name))
-          .map(w => `<option value="${w.name}">${w.name}</option>`)
+          .map(w => `<option value="${w.name}">${w.name}${w.market === 0 ? " (NO PRICE)" : ""}</option>`)
           .join("");
 
       if (prior) {
@@ -613,6 +597,7 @@
       const selectedName = weaponSelectEl.value;
       if (!selectedName) {
         selectedInfoEl.textContent = "NO SELECTION";
+        sellableTagEl.textContent = "—";
         if (autoCalc) calc();
         return;
       }
@@ -620,6 +605,8 @@
       const w = WEAPONS.find(x => x.name === selectedName);
       selectedInfoEl.textContent = `${w.name} • TIER ${w.tier} • ${catLabel(w.cat)} • RU ${formatMoney(w.market)}`;
       marketEl.value = w.market;
+
+      sellableTagEl.textContent = w.sellable ? "SELLABLE: YES" : "SELLABLE: NO";
 
       if (autoCalc) calc();
     }
@@ -630,10 +617,14 @@
       const pct = toNumber(profitEl.value);
       const step = toNumber(roundToEl.value);
 
+      const w = selectedName ? WEAPONS.find(x => x.name === selectedName) : null;
+      const canSell = w ? !!w.sellable : true;
+
       if (!Number.isFinite(market) || !Number.isFinite(pct)) {
         summaryEl.textContent = "Awaiting input…";
         sellPriceEl.textContent = "—";
         profitAmtEl.textContent = "—";
+        sellableTagEl.textContent = selectedName ? (canSell ? "SELLABLE: YES" : "SELLABLE: NO") : "—";
         return;
       }
 
@@ -643,23 +634,27 @@
 
       const name = selectedName ? `(${selectedName}) ` : "";
       summaryEl.textContent = `${name}Market RU ${formatMoney(market)} • Profit ${pct}%`;
-      sellPriceEl.textContent = `SELL: RU ${formatMoney(sell)}`;
+
+      if (!canSell) {
+        sellPriceEl.textContent = "SELL: (NOT SELLABLE)";
+      } else {
+        sellPriceEl.textContent = `SELL: RU ${formatMoney(sell)}`;
+      }
+
       profitAmtEl.textContent = `PROFIT: RU ${formatMoney(profit)} (before fees/tax)`;
+      sellableTagEl.textContent = canSell ? "SELLABLE: YES" : "SELLABLE: NO";
     }
 
-    // Filters
     tierEl.addEventListener('change', () => rebuildWeaponDropdown(true));
     catEl.addEventListener('change', () => rebuildWeaponDropdown(true));
     weaponSearchEl.addEventListener('input', () => rebuildWeaponDropdown(true));
     weaponSelectEl.addEventListener('change', () => handleWeaponChange(true));
 
-    // Inputs
     [marketEl, profitEl, roundToEl].forEach(el => el.addEventListener('input', () => {
       if (el === profitEl) document.querySelectorAll('button[data-p]').forEach(b => b.classList.remove('active'));
       calc();
     }));
 
-    // Quick % buttons
     document.querySelectorAll('button[data-p]').forEach(btn => {
       btn.addEventListener('click', () => {
         profitEl.value = btn.dataset.p;
@@ -669,7 +664,6 @@
       });
     });
 
-    // Reset
     document.getElementById('reset').addEventListener('click', () => {
       tierEl.value = "all";
       catEl.value = "all";
@@ -679,30 +673,15 @@
       marketEl.value = "";
       roundToEl.value = "1";
       selectedInfoEl.textContent = "NO SELECTION";
+      sellableTagEl.textContent = "—";
       document.querySelectorAll('button[data-p]').forEach(b => b.classList.remove('active'));
       rebuildWeaponDropdown(false);
       calc();
       weaponSelectEl.focus();
     });
 
-    // Init
     rebuildWeaponDropdown(false);
     updateStatusLine();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
